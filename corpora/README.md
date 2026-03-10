@@ -45,6 +45,10 @@ Useful commands:
 - `bun run corpus-check --id=ko-unsu-joh-eun-nal 300 600 800`
 - `bun run corpus-check --id=ar-risalat-al-ghufran-part-1 --diagnose 300`
 - `bun run corpus-sweep --id=hi-eidgah --start=300 --end=900 --step=10`
+- `bun run corpus-sweep --id=ar-al-bukhala --samples=9`
 - `bun run corpus-sweep --all --start=300 --end=900 --step=10`
 
 The corpus page is also available locally at `/corpus?id=<corpus-id>`.
+
+For very large corpora, `--samples=<n>` checks evenly spaced widths across the
+requested range instead of visiting every `step`.
