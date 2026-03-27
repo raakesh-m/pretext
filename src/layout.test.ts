@@ -271,6 +271,19 @@ describe('prepare invariants', () => {
     ])
   })
 
+  test('keeps no-space ascii punctuation chains together as one breakable segment', () => {
+    const prepared = prepareWithSegments('foo;bar foo:bar foo,bar as;lkdfjals;k', FONT)
+    expect(prepared.segments).toEqual([
+      'foo;bar',
+      ' ',
+      'foo:bar',
+      ' ',
+      'foo,bar',
+      ' ',
+      'as;lkdfjals;k',
+    ])
+  })
+
   test('keeps numeric time ranges together', () => {
     const prepared = prepareWithSegments('window 7:00-9:00 only', FONT)
     expect(prepared.segments).toEqual(['window', ' ', '7:00-', '9:00', ' ', 'only'])

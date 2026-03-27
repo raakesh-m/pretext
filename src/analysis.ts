@@ -459,6 +459,9 @@ const numericJoinerChars = new Set([
   '\u2014',
 ])
 
+const asciiPunctuationChainSegmentRe = /^[A-Za-z0-9_]+[,:;]*$/
+const asciiPunctuationChainTrailingJoinersRe = /[,:;]+$/
+
 function segmentContainsDecimalDigit(text: string): boolean {
   for (const ch of text) {
     if (decimalDigitRe.test(ch)) return true
@@ -507,6 +510,55 @@ function mergeNumericRuns(segmentation: MergedSegmentation): MergedSegmentation 
 
     texts.push(text)
     isWordLike.push(segmentation.isWordLike[i]!)
+    kinds.push(kind)
+    starts.push(segmentation.starts[i]!)
+  }
+
+  return {
+    len: texts.length,
+    texts,
+    isWordLike,
+    kinds,
+    starts,
+  }
+}
+
+function mergeAsciiPunctuationChains(segmentation: MergedSegmentation): MergedSegmentation {
+  const texts: string[] = []
+  const isWordLike: boolean[] = []
+  const kinds: SegmentBreakKind[] = []
+  const starts: number[] = []
+
+  for (let i = 0; i < segmentation.len; i++) {
+    const text = segmentation.texts[i]!
+    const kind = segmentation.kinds[i]!
+    const wordLike = segmentation.isWordLike[i]!
+
+    if (kind === 'text' && wordLike && asciiPunctuationChainSegmentRe.test(text)) {
+      let mergedText = text
+      let j = i + 1
+
+      while (
+        asciiPunctuationChainTrailingJoinersRe.test(mergedText) &&
+        j < segmentation.len &&
+        segmentation.kinds[j] === 'text' &&
+        segmentation.isWordLike[j] &&
+        asciiPunctuationChainSegmentRe.test(segmentation.texts[j]!)
+      ) {
+        mergedText += segmentation.texts[j]!
+        j++
+      }
+
+      texts.push(mergedText)
+      isWordLike.push(true)
+      kinds.push('text')
+      starts.push(segmentation.starts[i]!)
+      i = j - 1
+      continue
+    }
+
+    texts.push(text)
+    isWordLike.push(wordLike)
     kinds.push(kind)
     starts.push(segmentation.starts[i]!)
   }
@@ -807,7 +859,9 @@ function buildMergedSegmentation(normalized: string, profile: AnalysisProfile): 
     starts: mergedStarts,
   })
   const withMergedUrls = carryTrailingForwardStickyAcrossCJKBoundary(
-    splitHyphenatedNumericRuns(mergeNumericRuns(mergeUrlQueryRuns(mergeUrlLikeRuns(compacted)))),
+    mergeAsciiPunctuationChains(
+      splitHyphenatedNumericRuns(mergeNumericRuns(mergeUrlQueryRuns(mergeUrlLikeRuns(compacted)))),
+    ),
   )
 
   for (let i = 0; i < withMergedUrls.len - 1; i++) {
